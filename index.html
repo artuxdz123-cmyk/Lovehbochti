@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>I Love You ❤️</title>
+  <title>For H ❤️</title>
 
   <style>
     * {
@@ -12,18 +12,22 @@
       box-sizing: border-box;
     }
 
-    body {
+    html, body {
       width: 100%;
-      height: 100vh;
+      height: 100%;
       overflow: hidden;
       background: #000;
+    }
+
+    body {
       display: flex;
       justify-content: center;
       align-items: center;
-      font-family: Arial, sans-serif;
     }
 
     canvas {
+      width: 100%;
+      height: 100%;
       display: block;
     }
   </style>
@@ -31,27 +35,459 @@
 
 <body>
 
-<canvas id="heart"></canvas>
+<canvas id="canvas"></canvas>
 
 <script>
-const canvas = document.getElementById("heart");
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+let W, H;
+
 function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  W = canvas.width = window.innerWidth * devicePixelRatio;
+  H = canvas.height = window.innerHeight * devicePixelRatio;
+
+  canvas.style.width = window.innerWidth + "px";
+  canvas.style.height = window.innerHeight + "px";
+
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+  W = window.innerWidth;
+  H = window.innerHeight;
 }
 
 resize();
 window.addEventListener("resize", resize);
 
-let particles = [];
+
+/* =========================================
+   إعدادات
+========================================= */
+
+const pink = "#ffb6c1";
+const brightPink = "#ff4fa3";
+
+let heartPoints = [];
+let floatingHearts = [];
+
+let heartProgress = 0;
+let heartFinished = false;
+let startTime = performance.now();
+
+const centerX = () => W / 2;
+const centerY = () => H / 2;
+
+
+/* =========================================
+   إنشاء نقاط القلب
+========================================= */
 
 function createHeart() {
-  particles = [];
 
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
+  heartPoints = [];
 
-  // يجعل القلب مناسباً للهاتف والكمبيوتر
-  const scale = Math.min(canvas.width, canvas.height) /
+  // حجم مناسب للهاتف والكمبيوتر
+  const scale = Math.min(W, H) / 30;
+
+  // عدة طبقات مثل كود Python الأصلي
+  for (let layer = 11; layer <= 16; layer++) {
+
+    for (let i = 0; i < 120; i++) {
+
+      const angle = (i * Math.PI * 2) / 120;
+
+      const x =
+        16 * Math.pow(Math.sin(angle), 3);
+
+      const y =
+        13 * Math.cos(angle)
+        - 5 * Math.cos(2 * angle)
+        - 2 * Math.cos(3 * angle)
+        - Math.cos(4 * angle);
+
+      heartPoints.push({
+        x: centerX() + x * scale * (layer / 16),
+        y: centerY() - y * scale * (layer / 16),
+
+        size: 7 + Math.random() * 2,
+
+        delay: Math.random() * 0.7
+      });
+    }
+  }
+}
+
+createHeart();
+
+
+/* =========================================
+   رسم I love you
+========================================= */
+
+function drawHeartText(time) {
+
+  const elapsed = (time - startTime) / 1000;
+
+  const visibleCount =
+    Math.floor(
+      Math.min(
+        heartPoints.length,
+        elapsed * 260
+      )
+    );
+
+  heartProgress = visibleCount / heartPoints.length;
+
+  for (let i = 0; i < visibleCount; i++) {
+
+    const p = heartPoints[i];
+
+    const pulse =
+      1 +
+      Math.sin(elapsed * 3 + i * 0.04) * 0.025;
+
+    const x =
+      centerX() +
+      (p.x - centerX()) * pulse;
+
+    const y =
+      centerY() +
+      (p.y - centerY()) * pulse;
+
+    ctx.save();
+
+    ctx.globalAlpha =
+      0.55 +
+      Math.sin(elapsed * 2 + i) * 0.2;
+
+    ctx.fillStyle = pink;
+
+    ctx.font =
+      `bold ${p.size}px Arial`;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = brightPink;
+
+    ctx.fillText(
+      "I love you",
+      x,
+      y
+    );
+
+    ctx.restore();
+  }
+
+  // القلب اكتمل
+  if (
+    visibleCount >= heartPoints.length &&
+    !heartFinished
+  ) {
+    heartFinished = true;
+
+    setTimeout(() => {
+      createFloatingHearts();
+    }, 900);
+  }
+}
+
+
+/* =========================================
+   رسم H في الوسط
+========================================= */
+
+function drawH(time) {
+
+  if (!heartFinished) return;
+
+  const elapsed = (time - startTime) / 1000;
+
+  // ظهور تدريجي
+  const appear =
+    Math.min(1, Math.max(0, (elapsed - 5) / 1.2));
+
+  if (appear <= 0) return;
+
+  ctx.save();
+
+  ctx.globalAlpha = appear;
+
+  const pulse =
+    1 +
+    Math.sin(elapsed * 3) * 0.035;
+
+  const size =
+    Math.min(W, H) * 0.25 * pulse;
+
+  ctx.font =
+    `bold ${size}px Georgia, serif`;
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // توهج قوي
+  ctx.shadowBlur =
+    20 + Math.sin(elapsed * 5) * 10;
+
+  ctx.shadowColor = "#ff1493";
+
+  // اللون
+  const gradient =
+    ctx.createLinearGradient(
+      centerX() - size / 2,
+      centerY() - size / 2,
+      centerX() + size / 2,
+      centerY() + size / 2
+    );
+
+  gradient.addColorStop(0, "#fff");
+  gradient.addColorStop(0.35, "#ffb6e6");
+  gradient.addColorStop(0.7, "#ff4fa3");
+  gradient.addColorStop(1, "#ff1493");
+
+  ctx.fillStyle = gradient;
+
+  ctx.fillText(
+    "H",
+    centerX(),
+    centerY()
+  );
+
+  ctx.restore();
+
+  // لمعة تتحرك فوق H
+  const shine =
+    (Math.sin(elapsed * 2) + 1) / 2;
+
+  ctx.save();
+
+  ctx.globalAlpha = appear * 0.8;
+
+  ctx.fillStyle = "#ffffff";
+
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = "#fff";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    centerX() - size * 0.12 + shine * size * 0.24,
+    centerY() - size * 0.28,
+    4,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+
+  ctx.restore();
+}
+
+
+/* =========================================
+   إنشاء القلوب المتناثرة
+========================================= */
+
+function createFloatingHearts() {
+
+  for (let i = 0; i < 45; i++) {
+
+    floatingHearts.push({
+      x: Math.random() * W,
+
+      y:
+        H * 0.5 +
+        Math.random() * H * 0.2,
+
+      size:
+        5 + Math.random() * 16,
+
+      speed:
+        0.3 + Math.random() * 1.2,
+
+      drift:
+        (Math.random() - 0.5) * 0.8,
+
+      rotation:
+        Math.random() * Math.PI * 2,
+
+      rotationSpeed:
+        (Math.random() - 0.5) * 0.03,
+
+      opacity:
+        0.4 + Math.random() * 0.6,
+
+      delay:
+        Math.random() * 2
+    });
+  }
+}
+
+
+/* =========================================
+   رسم قلب صغير
+========================================= */
+
+function drawSmallHeart(x, y, size, rotation, opacity) {
+
+  ctx.save();
+
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+
+  ctx.globalAlpha = opacity;
+
+  ctx.fillStyle = brightPink;
+
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = "#ff1493";
+
+  ctx.beginPath();
+
+  const s = size;
+
+  ctx.moveTo(0, s * 0.35);
+
+  ctx.bezierCurveTo(
+    -s * 0.9,
+    -s * 0.25,
+    -s * 0.55,
+    -s * 0.9,
+    0,
+    -s * 0.35
+  );
+
+  ctx.bezierCurveTo(
+    s * 0.55,
+    -s * 0.9,
+    s * 0.9,
+    -s * 0.25,
+    0,
+    s * 0.35
+  );
+
+  ctx.fill();
+
+  ctx.restore();
+}
+
+
+/* =========================================
+   تحريك القلوب
+========================================= */
+
+function animateFloatingHearts() {
+
+  if (!heartFinished) return;
+
+  floatingHearts.forEach(heart => {
+
+    heart.y -= heart.speed;
+    heart.x += heart.drift;
+
+    heart.rotation += heart.rotationSpeed;
+
+    // إذا خرج من الشاشة يرجع من الأسفل
+    if (heart.y < -30) {
+      heart.y = H + 30;
+      heart.x = Math.random() * W;
+    }
+
+    drawSmallHeart(
+      heart.x,
+      heart.y,
+      heart.size,
+      heart.rotation,
+      heart.opacity
+    );
+  });
+}
+
+
+/* =========================================
+   نجوم ولمعات
+========================================= */
+
+let sparkles = [];
+
+for (let i = 0; i < 70; i++) {
+
+  sparkles.push({
+    x: Math.random(),
+    y: Math.random(),
+    size: Math.random() * 2 + 1,
+    speed: Math.random() * 2
+  });
+}
+
+function drawSparkles(time) {
+
+  if (!heartFinished) return;
+
+  sparkles.forEach((s, i) => {
+
+    const alpha =
+      0.2 +
+      Math.sin(time * 0.003 * s.speed + i) * 0.3;
+
+    ctx.save();
+
+    ctx.globalAlpha = Math.max(0, alpha);
+
+    ctx.fillStyle = "#ffb6c1";
+
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = "#ff69b4";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      s.x * W,
+      s.y * H,
+      s.size,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+  });
+}
+
+
+/* =========================================
+   التشغيل
+========================================= */
+
+function animate(time) {
+
+  // خلفية سوداء
+  ctx.fillStyle = "#000";
+
+  ctx.fillRect(
+    0,
+    0,
+    W,
+    H
+  );
+
+  drawHeartText(time);
+
+  drawSparkles(time);
+
+  drawH(time);
+
+  animateFloatingHearts();
+
+  requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+
+</script>
+
+</body>
+</html>
